@@ -1,5 +1,7 @@
 """
 python tools/train.py osram_unet.py
+
+tensorboard --logdir ./results/osram_unet
 """
 
 """Five-class UNet/FCN config for the prepared OSRAM dataset."""
@@ -12,9 +14,12 @@ _base_ = (
 custom_imports = dict(imports=['projects.osram'], allow_failed_imports=False)
 
 dataset_type = 'BaseSegDataset'
+# data_root = (
+#     '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
+#     'r4_s1_80_10_10_osram_png_norm_fix')
 data_root = (
-    '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
-    'r4_s1_80_10_10_osram_png_norm_fix')
+    "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10"
+)
 
 dataset_name = data_root.rstrip('/').rsplit('/', maxsplit=1)[-1]
 
@@ -28,28 +33,40 @@ palette = [
 ]
 metainfo = dict(classes=classes, palette=palette)
 
-crop_size = (256, 256)
-batch_size = 32
-max_epochs = 200
-val_interval = 1
+crop_size = (512, 512)
+batch_size = 8
+max_epochs = 100
+val_interval = 5
 checkpoint_interval = 10
 
 # Preserve the requested UNet, FCN heads and CE 1.0 + Dice 3.0 loss. Only
 # adapt both classifier outputs from two classes to five classes.
+# model = dict(
+#     decode_head=dict(num_classes=5),
+#     auxiliary_head=dict(num_classes=5),
+#     test_cfg=dict(mode='slide', crop_size=crop_size, stride=(170, 170)))
+
 model = dict(
+    data_preprocessor=dict(size=crop_size),
     decode_head=dict(num_classes=5),
     auxiliary_head=dict(num_classes=5),
-    test_cfg=dict(mode='slide', crop_size=crop_size, stride=(170, 170)))
+    test_cfg=dict(
+        mode='slide',
+        crop_size=crop_size,
+        stride=(340, 340),
+    ),
+)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadOsramAnnotations'),
-    dict(
-        type='RandomResize',
-        scale=(512, 512),
-        ratio_range=(0.5, 2.0),
-        keep_ratio=True),
-    dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+    # dict(
+    #     type='RandomResize',
+    #     scale=(512, 512),
+    #     ratio_range=(0.5, 2.0),
+    #     keep_ratio=True),
+    # dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+    dict(type="RandomCrop", crop_size=crop_size, cat_max_ratio=1.0),
     dict(type='RandomFlip', prob=0.5),
     dict(type='PhotoMetricDistortion'),
     dict(type='PackSegInputs'),
@@ -146,5 +163,16 @@ default_hooks = dict(
 )
 
 log_processor = dict(by_epoch=True)
+
+vis_backends = [
+    dict(type='LocalVisBackend'),
+    dict(type='TensorboardVisBackend'),
+]
+
+visualizer = dict(
+    type='SegLocalVisualizer',
+    vis_backends=vis_backends,
+    name='visualizer',
+)
 
 work_dir = f'./results/osram_unet/{dataset_name}'
