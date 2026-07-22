@@ -1,7 +1,9 @@
 """
 python tools/train.py osram_unet.py
 
-tensorboard --logdir ./results/osram_unet
+python tools/test.py osram_unet.py <CHECKPOINT>
+
+tensorboard --logdir .
 """
 
 """Five-class UNet/FCN config for the prepared OSRAM dataset."""
@@ -14,12 +16,12 @@ _base_ = (
 custom_imports = dict(imports=['projects.osram'], allow_failed_imports=False)
 
 dataset_type = 'BaseSegDataset'
-# data_root = (
-#     '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
-#     'r4_s1_80_10_10_osram_png_norm_fix')
 data_root = (
-    "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10"
-)
+    '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
+    'r4_s1_80_10_10_osram_png_norm_fix')
+# data_root = (
+#     "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10"
+# )
 
 dataset_name = data_root.rstrip('/').rsplit('/', maxsplit=1)[-1]
 
@@ -35,9 +37,9 @@ metainfo = dict(classes=classes, palette=palette)
 
 crop_size = (512, 512)
 batch_size = 8
-max_epochs = 100
-val_interval = 5
-checkpoint_interval = 10
+max_epochs = 200
+val_interval = 1
+checkpoint_interval = 20
 
 # Preserve the requested UNet, FCN heads and CE 1.0 + Dice 3.0 loss. Only
 # adapt both classifier outputs from two classes to five classes.
@@ -129,7 +131,9 @@ test_dataloader = dict(
         pipeline=test_pipeline))
 
 val_evaluator = dict(
-    type='IoUMetric', iou_metrics=['mIoU', 'mDice', 'mFscore'])
+    type='ClasswiseIoUMetric',
+    iou_metrics=['mIoU', 'mDice', 'mFscore'],
+)
 test_evaluator = val_evaluator
 train_cfg = dict(
     _delete_=True,
@@ -159,6 +163,13 @@ default_hooks = dict(
         type='CheckpointHook',
         by_epoch=True,
         interval=checkpoint_interval,
+        save_best='anomaly_mIoU',
+        rule='greater',
+    ),
+    visualization=dict(
+        _delete_=True,
+        type='ClassBalancedSegVisualizationHook',
+        class_ids=[1, 2, 3, 4],
     ),
 )
 
@@ -170,7 +181,7 @@ vis_backends = [
 ]
 
 visualizer = dict(
-    type='SegLocalVisualizer',
+    type='ThreePanelSegVisualizer',
     vis_backends=vis_backends,
     name='visualizer',
 )
