@@ -16,12 +16,12 @@ _base_ = (
 custom_imports = dict(imports=['projects.osram'], allow_failed_imports=False)
 
 dataset_type = 'BaseSegDataset'
-data_root = (
-    '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
-    'r4_s1_80_10_10_osram_png_norm_fix')
 # data_root = (
-#     "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10"
-# )
+#     '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
+#     'r4_s1_80_10_10_osram_batched_global3_custom_dist')
+data_root = (
+    "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10"
+)
 
 dataset_name = data_root.rstrip('/').rsplit('/', maxsplit=1)[-1]
 
@@ -37,9 +37,10 @@ metainfo = dict(classes=classes, palette=palette)
 
 crop_size = (512, 512)
 batch_size = 8
-max_epochs = 200
-val_interval = 1
-checkpoint_interval = 20
+max_iters = 100000
+val_interval = 300  # bei 1315 (80:20) train samples mit batch size 8: ca. 164 Iterationen = 1 Epoche
+checkpoint_interval = 600
+scheduler_end = 35000   # hier dann etwas über 200 Epochen
 
 # Preserve the requested UNet, FCN heads and CE 1.0 + Dice 3.0 loss. Only
 # adapt both classifier outputs from two classes to five classes.
@@ -84,7 +85,7 @@ train_dataloader = dict(
     batch_size=batch_size,
     num_workers=4,
     persistent_workers=True,
-    sampler=dict(type='DefaultSampler', shuffle=True),
+    sampler=dict(type='InfiniteSampler', shuffle=True),
         dataset=dict(
         _delete_=True,
         type=dataset_type,
@@ -137,8 +138,8 @@ val_evaluator = dict(
 test_evaluator = val_evaluator
 train_cfg = dict(
     _delete_=True,
-    type='EpochBasedTrainLoop',
-    max_epochs=max_epochs,
+    type='IterBasedTrainLoop',
+    max_iters=max_iters,
     val_interval=val_interval,
 )
 
@@ -148,8 +149,8 @@ param_scheduler = [
         eta_min=1e-4,
         power=0.9,
         begin=0,
-        end=max_epochs,
-        by_epoch=True,
+        end=scheduler_end,
+        by_epoch=False,
     )
 ]
 
@@ -157,11 +158,11 @@ default_hooks = dict(
     logger=dict(
         type='LoggerHook',
         interval=10,
-        log_metric_by_epoch=True,
+        log_metric_by_epoch=False,
     ),
     checkpoint=dict(
         type='CheckpointHook',
-        by_epoch=True,
+        by_epoch=False,
         interval=checkpoint_interval,
         save_best='anomaly_mIoU',
         rule='greater',
@@ -173,7 +174,18 @@ default_hooks = dict(
     ),
 )
 
-log_processor = dict(by_epoch=True)
+custom_hooks = [
+    dict(
+        type='EarlyStoppingHook',
+        monitor='anomaly_mIoU',
+        rule='greater',
+        min_delta=0.01,
+        patience=10,    # validations
+        check_finite=True,
+    ),
+]
+
+log_processor = dict(by_epoch=False)
 
 vis_backends = [
     dict(type='LocalVisBackend'),
