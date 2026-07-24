@@ -1,22 +1,17 @@
-# MMSegmentation environment (Python 3.12)
-#
-# Usage:
-#   python -m venv .venv
-#   source .venv/bin/activate
-#   python -m pip install --upgrade pip setuptools wheel
-#   python -m pip install -r mmseg_requirements.txt
+# MMSegmentation (Python 3.12, CUDA 12.1)
 
 --extra-index-url https://download.pytorch.org/whl/cu121
+--find-links https://download.openmmlab.com/mmcv/dist/cu121/torch2.4/index.html
 
 # PyTorch
 torch==2.4.1
 torchvision==0.19.1
 
 # OpenMMLab
-mmcv-lite==2.1.0
+mmcv==2.2.0
 mmengine==0.10.7
 
-# MMSegmentation dependencies
+# Utilities
 addict==2.4.0
 ftfy==6.3.1
 matplotlib==3.10.5
@@ -29,10 +24,9 @@ PyYAML==6.0.2
 regex==2025.7.34
 rich==14.1.0
 scipy==1.16.1
+tensorboard==2.20.0
 termcolor==3.1.0
 yapf==0.43.0
 
-tensorboard
-
-# Install this local MMSegmentation checkout in editable mode.
+# Install local MMSegmentation
 -e .

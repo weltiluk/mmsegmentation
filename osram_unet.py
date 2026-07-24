@@ -39,7 +39,7 @@ crop_size = (512, 512)
 batch_size = 8
 max_iters = 100000
 val_interval = 300  # bei 1315 (80:20) train samples mit batch size 8: ca. 164 Iterationen = 1 Epoche
-checkpoint_interval = 600
+checkpoint_interval = 300
 scheduler_end = 35000   # hier dann etwas über 200 Epochen
 
 # Preserve the requested UNet, FCN heads and CE 1.0 + Dice 3.0 loss. Only
@@ -164,7 +164,7 @@ default_hooks = dict(
         type='CheckpointHook',
         by_epoch=False,
         interval=checkpoint_interval,
-        save_best='anomaly_mIoU',
+        save_best='fg_mDice',
         rule='greater',
     ),
     visualization=dict(
@@ -177,10 +177,10 @@ default_hooks = dict(
 custom_hooks = [
     dict(
         type='EarlyStoppingHook',
-        monitor='anomaly_mIoU',
+        monitor='fg_mDice',
         rule='greater',
         min_delta=0.01,
-        patience=10,    # validations
+        patience=15,    # validations
         check_finite=True,
     ),
 ]

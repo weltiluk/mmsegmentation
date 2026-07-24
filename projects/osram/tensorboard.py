@@ -18,10 +18,10 @@ from mmseg.visualization import SegLocalVisualizer
 
 @METRICS.register_module()
 class ClasswiseIoUMetric(IoUMetric):
-    """Add anomaly and per-class metrics to the standard MMSeg metrics.
+    """Add foreground and per-class metrics to the standard MMSeg metrics.
 
-    ``anomaly_mIoU`` is the mean IoU over all foreground/anomaly classes;
-    class index 0 (background) is excluded.
+    ``fg_mIoU`` and ``fg_mDice`` are the respective means over all foreground
+    classes; class index 0 (background) is excluded.
     """
 
     def compute_metrics(self, results):
@@ -47,14 +47,33 @@ class ClasswiseIoUMetric(IoUMetric):
         # aAcc ist eine globale Metrik und keine Klassenmetrik.
         per_class_metrics.pop("aAcc", None)
 
-        # Analog zu MMSegs mIoU als Mittelwert ueber die Klassen, aber ohne
-        # Klasse 0 (background). nanmean ignoriert Klassen, die im gesamten
-        # Validierungs-Split nicht vorkommen, genau wie MMSegs Standardmittel.
+        # Analog zu MMSegs mIoU/mDice als Mittelwert ueber die Klassen, aber
+        # ohne Klasse 0 (background). nanmean ignoriert Klassen, die im
+        # gesamten Validierungs-Split nicht vorkommen, genau wie MMSegs
+        # Standardmittel.
         if "IoU" in per_class_metrics:
-            anomaly_ious = per_class_metrics["IoU"][1:]
-            metrics["anomaly_mIoU"] = round(
-                float(np.nanmean(anomaly_ious)) * 100.0, 2
+            foreground_ious = per_class_metrics["IoU"][1:]
+            metrics["fg_mIoU"] = round(
+                float(np.nanmean(foreground_ious)) * 100.0, 2
             )
+
+        # fg_mDice wird unabhaengig von iou_metrics immer berechnet und
+        # getrackt, damit es verlaesslich als Checkpoint-/Stopping-Metrik
+        # verwendet werden kann.
+        total_area_intersect = sum(transposed[0])
+        total_area_pred_label = sum(transposed[2])
+        total_area_label = sum(transposed[3])
+        foreground_dice = (
+            2 * total_area_intersect[1:]
+            / (total_area_pred_label[1:] + total_area_label[1:])
+        ).numpy()
+        if self.nan_to_num is not None:
+            foreground_dice = np.nan_to_num(
+                foreground_dice, nan=self.nan_to_num
+            )
+        metrics["fg_mDice"] = round(
+            float(np.nanmean(foreground_dice)) * 100.0, 2
+        )
 
         for metric_name, values in per_class_metrics.items():
             for class_name, value in zip(
