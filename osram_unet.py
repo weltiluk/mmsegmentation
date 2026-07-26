@@ -16,12 +16,12 @@ _base_ = (
 custom_imports = dict(imports=['projects.osram'], allow_failed_imports=False)
 
 dataset_type = 'BaseSegDataset'
-# data_root = (
-#     '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
-#     'r4_s1_80_10_10_osram_batched_global3_custom_dist')
 data_root = (
-    "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10"
-)
+    '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
+    'r3_s1_80_10_10_osram_batched_global3_custom_dist')
+# data_root = (
+#     "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_60_20_20"
+# )
 
 dataset_name = data_root.rstrip('/').rsplit('/', maxsplit=1)[-1]
 
@@ -175,6 +175,7 @@ default_hooks = dict(
 )
 
 custom_hooks = [
+    dict(type='BestMetricsVisualizationHook'),
     dict(
         type='EarlyStoppingHook',
         monitor='fg_mDice',
