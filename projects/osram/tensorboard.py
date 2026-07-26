@@ -16,6 +16,53 @@ from mmseg.structures import SegDataSample
 from mmseg.visualization import SegLocalVisualizer
 
 
+@HOOKS.register_module()
+class BestMetricsVisualizationHook(Hook):
+    """Log the best validation value reached for selected metrics."""
+
+    def __init__(
+        self,
+        metrics=("mDice", "mIoU", "fg_mDice", "fg_mIoU"),
+        classwise_metric_prefixes=("Dice/", "IoU/"),
+        excluded_classes=("background",),
+    ):
+        self.metrics = tuple(metrics)
+        self.classwise_metric_prefixes = tuple(classwise_metric_prefixes)
+        self.excluded_classes = set(excluded_classes)
+
+    def after_val_epoch(
+        self,
+        runner: Runner,
+        metrics: Optional[dict] = None,
+    ) -> None:
+        if not metrics:
+            return
+
+        metric_names = set(self.metrics)
+        for metric_name in metrics:
+            if not metric_name.startswith(self.classwise_metric_prefixes):
+                continue
+            class_name = metric_name.rsplit("/", maxsplit=1)[-1]
+            if class_name not in self.excluded_classes:
+                metric_names.add(metric_name)
+
+        for metric_name in sorted(metric_names):
+            if metric_name not in metrics:
+                continue
+
+            current_value = float(metrics[metric_name])
+            message_hub_key = f"best_metrics/{metric_name}"
+            best_value = runner.message_hub.get_info(message_hub_key)
+
+            if best_value is None or current_value > best_value:
+                best_value = current_value
+                runner.message_hub.update_info(message_hub_key, best_value)
+
+            runner.visualizer.add_scalar(
+                f"{metric_name}_best", best_value, step=runner.iter
+            )
+
+
 @METRICS.register_module()
 class ClasswiseIoUMetric(IoUMetric):
     """Add foreground and per-class metrics to the standard MMSeg metrics.

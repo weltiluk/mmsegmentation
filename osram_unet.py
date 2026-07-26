@@ -3,6 +3,24 @@ python tools/train.py osram_unet.py
 
 python tools/test.py osram_unet.py <CHECKPOINT>
 
+
+python tools/train.py osram_unet.py \
+  --work-dir results/osram_unet/r2_s1_80_10_10_osram_batched_global3_custom_dist \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r2_s1_80_10_10_osram_batched_global3_custom_dist \
+&& \
+python tools/train.py osram_unet.py \
+  --work-dir results/osram_unet/r4_s1_80_10_10_osram_batched_global3_custom_dist \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r4_s1_80_10_10_osram_batched_global3_custom_dist \
+  && \
+python tools/train.py osram_unet.py \
+  --work-dir results/osram_unet/r2_s1_80_10_10_osram_more_rares_custom_dist \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r2_s1_80_10_10_osram_more_rares_custom_dist \
+&& \
+python tools/train.py osram_unet.py \
+  --work-dir results/osram_unet/r2_s1_80_10_10_osram_high_steepness_custom_dist \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r2_s1_80_10_10_osram_high_steepness_custom_dist
+
+  
 tensorboard --logdir .
 """
 
@@ -18,7 +36,7 @@ custom_imports = dict(imports=['projects.osram'], allow_failed_imports=False)
 dataset_type = 'BaseSegDataset'
 # data_root = (
 #     '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
-#     'r4_s1_80_10_10_osram_batched_global3_custom_dist')
+#     'r2_s1_80_10_10_osram_batched_global3_custom_dist')
 data_root = (
     "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10"
 )
@@ -175,6 +193,7 @@ default_hooks = dict(
 )
 
 custom_hooks = [
+    dict(type='BestMetricsVisualizationHook'),
     dict(
         type='EarlyStoppingHook',
         monitor='fg_mDice',
