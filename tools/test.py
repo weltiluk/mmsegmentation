@@ -12,7 +12,11 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='MMSeg test (and eval) a model')
     parser.add_argument('config', help='train config file path')
-    parser.add_argument('checkpoint', help='checkpoint file')
+    parser.add_argument(
+        'checkpoint',
+        nargs='?',
+        help=('checkpoint file; optional when "load_from" is set in the '
+              'config'))
     parser.add_argument(
         '--work-dir',
         help=('if specified, the evaluation metric results will be dumped'
@@ -97,7 +101,12 @@ def main():
         cfg.work_dir = osp.join('./work_dirs',
                                 osp.splitext(osp.basename(args.config))[0])
 
-    cfg.load_from = args.checkpoint
+    if args.checkpoint is not None:
+        cfg.load_from = args.checkpoint
+    elif cfg.get('load_from', None) is None:
+        raise ValueError(
+            'No checkpoint specified. Pass one as the second positional '
+            'argument or set "load_from" in the config.')
 
     if args.show or args.show_dir:
         cfg = trigger_visualization_hook(cfg, args)

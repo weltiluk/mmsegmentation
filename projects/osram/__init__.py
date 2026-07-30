@@ -5,6 +5,7 @@ from .tensorboard import (
     BestMetricsVisualizationHook,
     ClassBalancedSegVisualizationHook,
     ClasswiseIoUMetric,
+    EMAEarlyStoppingHook,
     ThreePanelSegVisualizer,
 )
 
@@ -14,4 +15,5 @@ __all__ = [
     "ThreePanelSegVisualizer",
     "ClassBalancedSegVisualizationHook",
     "BestMetricsVisualizationHook",
+    "EMAEarlyStoppingHook",
 ]

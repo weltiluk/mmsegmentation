@@ -63,6 +63,100 @@ class BestMetricsVisualizationHook(Hook):
             )
 
 
+@HOOKS.register_module()
+class EMAEarlyStoppingHook(Hook):
+    """Stop when an exponentially smoothed validation metric plateaus.
+
+    The default smoothing matches nnU-Net:
+    ``ema = 0.9 * previous_ema + 0.1 * current_value``.
+    """
+
+    def __init__(
+        self,
+        monitor: str,
+        rule: str = "greater",
+        min_delta: float = 0.0,
+        patience: int = 10,
+        momentum: float = 0.9,
+        check_finite: bool = True,
+    ):
+        if rule not in ("greater", "less"):
+            raise ValueError('rule must be either "greater" or "less"')
+        if patience < 1:
+            raise ValueError("patience must be at least 1")
+        if not 0.0 <= momentum < 1.0:
+            raise ValueError("momentum must satisfy 0 <= momentum < 1")
+
+        self.monitor = monitor
+        self.rule = rule
+        self.min_delta = float(min_delta)
+        self.patience = int(patience)
+        self.momentum = float(momentum)
+        self.check_finite = check_finite
+        self.ema = None
+        self.best = None
+        self.bad_count = 0
+
+    def after_val_epoch(
+        self,
+        runner: Runner,
+        metrics: Optional[dict] = None,
+    ) -> None:
+        if not metrics or self.monitor not in metrics:
+            runner.logger.warning(
+                f"Early stopping metric {self.monitor!r} is unavailable."
+            )
+            return
+
+        current = float(metrics[self.monitor])
+        if self.check_finite and not np.isfinite(current):
+            runner.logger.warning(
+                f"Early stopping metric {self.monitor!r} is not finite; "
+                "training will be stopped."
+            )
+            runner.train_loop.stop_training = True
+            return
+
+        if self.ema is None:
+            self.ema = current
+        else:
+            self.ema = (
+                self.momentum * self.ema
+                + (1.0 - self.momentum) * current
+            )
+
+        runner.visualizer.add_scalar(
+            f"{self.monitor}_ema", self.ema, step=runner.iter
+        )
+
+        if self.best is None:
+            improved = True
+        elif self.rule == "greater":
+            improved = self.ema > self.best + self.min_delta
+        else:
+            improved = self.ema < self.best - self.min_delta
+
+        if improved:
+            self.best = self.ema
+            self.bad_count = 0
+        else:
+            self.bad_count += 1
+
+        runner.logger.info(
+            f"EMA early stopping: {self.monitor}={current:.4f}, "
+            f"ema={self.ema:.4f}, best_ema={self.best:.4f}, "
+            f"bad validations={self.bad_count}/{self.patience}"
+        )
+
+        if self.bad_count >= self.patience:
+            runner.logger.info(
+                f"Early stopping: EMA of {self.monitor!r} did not improve "
+                f"by at least {self.min_delta} for "
+                f"{self.patience} validations."
+            )
+            runner.train_loop.stop_training = True
+
+
 @METRICS.register_module()
 class ClasswiseIoUMetric(IoUMetric):
     """Add foreground and per-class metrics to the standard MMSeg metrics.
@@ -94,19 +188,17 @@ class ClasswiseIoUMetric(IoUMetric):
         # aAcc ist eine globale Metrik und keine Klassenmetrik.
         per_class_metrics.pop("aAcc", None)
 
-        # Analog zu MMSegs mIoU/mDice als Mittelwert ueber die Klassen, aber
-        # ohne Klasse 0 (background). nanmean ignoriert Klassen, die im
-        # gesamten Validierungs-Split nicht vorkommen, genau wie MMSegs
-        # Standardmittel.
-        if "IoU" in per_class_metrics:
-            foreground_ious = per_class_metrics["IoU"][1:]
-            metrics["fg_mIoU"] = round(
-                float(np.nanmean(foreground_ious)) * 100.0, 2
+        # Mean of every requested class metric over foreground classes only.
+        # For mFscore MMSeg also returns Precision and Recall, so their
+        # foreground means are exposed as fg_mPrecision and fg_mRecall.
+        for metric_name, values in per_class_metrics.items():
+            foreground_values = np.asarray(values[1:])
+            metrics[f"fg_m{metric_name}"] = round(
+                float(np.nanmean(foreground_values)) * 100.0, 2
             )
 
-        # fg_mDice wird unabhaengig von iou_metrics immer berechnet und
-        # getrackt, damit es verlaesslich als Checkpoint-/Stopping-Metrik
-        # verwendet werden kann.
+        # fg_mDice is always calculated even when mDice was not explicitly
+        # requested, because checkpointing and early stopping depend on it.
         total_area_intersect = sum(transposed[0])
         total_area_pred_label = sum(transposed[2])
         total_area_label = sum(transposed[3])
@@ -118,9 +210,10 @@ class ClasswiseIoUMetric(IoUMetric):
             foreground_dice = np.nan_to_num(
                 foreground_dice, nan=self.nan_to_num
             )
-        metrics["fg_mDice"] = round(
-            float(np.nanmean(foreground_dice)) * 100.0, 2
-        )
+        if "Dice" not in per_class_metrics:
+            metrics["fg_mDice"] = round(
+                float(np.nanmean(foreground_dice)) * 100.0, 2
+            )
 
         for metric_name, values in per_class_metrics.items():
             for class_name, value in zip(
