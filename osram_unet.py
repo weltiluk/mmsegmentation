@@ -58,6 +58,7 @@ dataset_type = 'BaseSegDataset'
 data_root = (
     '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
     'r2_s1_80_10_10_osram_more_rares_transform_image_order0_custom_dist')
+
 # data_root = (
 #     "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_60_20_20"
 # )
