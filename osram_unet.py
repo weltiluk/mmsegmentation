@@ -5,22 +5,44 @@ python tools/test.py osram_unet.py <CHECKPOINT>
 
 
 python tools/train.py osram_unet.py \
-  --work-dir results/osram_unet/r3_s1_80_10_10_osram_more_rares_high_skip_no_transform_custom_dist \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r3_s1_80_10_10_osram_more_rares_high_skip_no_transform_custom_dist \
+  --work-dir results/osram_unet/r2_s1_80_10_10_osram_more_rares_transform_image_custom_dist \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r2_s1_80_10_10_osram_more_rares_transform_image_custom_dist \
 && \
 python tools/train.py osram_unet.py \
-  --work-dir results/osram_unet/r2_s1_80_10_10_osram_more_rares_high_skip_no_transform_custom_dist \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r2_s1_80_10_10_osram_more_rares_high_skip_no_transform_custom_dist \
+  --work-dir results/osram_unet/r2_s1_80_10_10_osram_more_rares_transform_image_order1_custom_dist \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r2_s1_80_10_10_osram_more_rares_transform_image_order1_custom_dist \
   && \
 python tools/train.py osram_unet.py \
-  --work-dir results/osram_unet/r1_s1_80_10_10_osram_more_rares_high_skip_no_transform_custom_dist \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r1_s1_80_10_10_osram_more_rares_high_skip_no_transform_custom_dist \
+  --work-dir results/osram_unet/r3_s1_80_10_10_osram_more_rares_transform_image_custom_dist \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r3_s1_80_10_10_osram_more_rares_transform_image_custom_dist \
     && \
+python tools/train.py osram_unet.py \
+  --work-dir results/osram_unet/r1_s1_80_10_10_osram_more_rares_transform_image_custom_dist \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r1_s1_80_10_10_osram_more_rares_transform_image_custom_dist
+
+  
 python tools/train.py osram_unet.py \
   --work-dir results/osram_unet/real_dataset_splits_80_10_10 \
   --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10 \
   
 tensorboard --logdir .
+"""
+
+"""
+for data_root in \
+  /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r2_s1_80_10_10_osram_more_rares_transform_image_order1_custom_dist \
+  /workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10
+do
+  dataset_name=$(basename "$data_root")
+
+  for seed in 0 1 2; do
+    python tools/train.py osram_unet.py \
+      --work-dir "./results_patience20/osram_unet/${dataset_name}_seed${seed}" \
+      --cfg-options \
+        data_root="$data_root" \
+        randomness.seed="$seed"
+  done
+done
 """
 
 """Five-class UNet/FCN config for the prepared OSRAM dataset."""
@@ -35,9 +57,9 @@ custom_imports = dict(imports=['projects.osram'], allow_failed_imports=False)
 dataset_type = 'BaseSegDataset'
 data_root = (
     '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
-    'r1_s1_80_10_10_osram_more_rares_custom_dist')
+    'r2_s1_80_10_10_osram_more_rares_transform_image_order0_custom_dist')
 # data_root = (
-#     "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10"
+#     "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_60_20_20"
 # )
 
 dataset_name = data_root.rstrip('/').rsplit('/', maxsplit=1)[-1]
@@ -67,7 +89,8 @@ scheduler_end = 35000   # hier dann etwas über 200 Epochen
 #     test_cfg=dict(mode='slide', crop_size=crop_size, stride=(170, 170)))
 
 # Reproduzierbare Trainingsläufe
-randomness = dict(seed=42)
+seed = 0
+randomness = dict(seed=seed)
 
 model = dict(
     data_preprocessor=dict(size=crop_size),
@@ -201,7 +224,7 @@ custom_hooks = [
         monitor='fg_mDice',
         rule='greater',
         min_delta=0.05, # 0.05%
-        patience=10,    # validations
+        patience=20,    # validations
         momentum=0.8,   # 0.8*old_val + 0.2*new_val
         check_finite=True,
     ),
@@ -220,4 +243,4 @@ visualizer = dict(
     name='visualizer',
 )
 
-work_dir = f'./results/osram_unet/{dataset_name}_patience15'
+work_dir = f'./results_patience20/osram_unet/{dataset_name}_seed{seed}'

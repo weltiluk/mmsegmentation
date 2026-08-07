@@ -14,7 +14,7 @@ _base_ = './osram_unet.py'
 # Directory containing the trained model, its saved config and best checkpoint.
 MODEL_DIR = (
     '/workspaces/masterarbeit/mmsegmentation/results/osram_unet/'
-    'r1_s1_80_10_10_osram_more_rares_high_skip_no_transform_custom_dist')
+    'r2_s1_80_10_10_osram_more_rares_transform_image_order1_custom_dist')
 
 _model_dir = _Path(MODEL_DIR)
 if not _model_dir.is_dir():
@@ -59,6 +59,20 @@ test_dataloader = dict(
         ),
     ),
 )
+
+# HD95 is intentionally evaluated only in this test config. Distances are
+# reported in pixels for every foreground class and as their macro average.
+test_evaluator = [
+    dict(
+        type='ClasswiseIoUMetric',
+        iou_metrics=['mIoU', 'mDice', 'mFscore'],
+    ),
+    dict(
+        type='HausdorffDistanceMetric',
+        percentile=95,
+        include_background=False,
+    ),
+]
 
 # MMEngine serializes every remaining global as config. Remove helper objects
 # that are needed only while this file is evaluated.
