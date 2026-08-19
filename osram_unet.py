@@ -60,6 +60,57 @@ do
 done
 """
 
+
+"""
+cd /workspaces/masterarbeit/mmsegmentation || exit 1
+
+echo "Warte, bis GPU 0 höchstens 1024 MiB Speicher verwendet ..."
+
+while true; do
+    used_memory=$(nvidia-smi \
+        --id=0 \
+        --query-gpu=memory.used \
+        --format=csv,noheader,nounits 2>/dev/null)
+
+    if [[ "$used_memory" =~ ^[0-9]+$ ]]; then
+        printf '%s – GPU 0: %s MiB belegt\n' \
+            "$(date '+%Y-%m-%d %H:%M:%S')" \
+            "$used_memory"
+
+        if (( used_memory <= 1024 )); then
+            echo "GPU ist frei. Trainingsreihe wird gestartet."
+            break
+        fi
+    else
+        printf '%s – GPU-Abfrage fehlgeschlagen; neuer Versuch folgt.\n' \
+            "$(date '+%Y-%m-%d %H:%M:%S')"
+    fi
+
+    sleep 60
+done
+
+python tools/train.py osram_unet.py \
+  --work-dir results_seed42/osram_unet/real_dataset_splits_60_20_20 \
+  --cfg-options \
+    data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_60_20_20 \
+&& \
+python tools/train.py osram_unet.py \
+  --work-dir results_seed42/osram_unet/r6_s1_60_20_20_osram_two_encoders \
+  --cfg-options \
+    data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r6_s1_60_20_20_osram_two_encoders \
+&& \
+python tools/train.py osram_unet.py \
+  --work-dir results_seed42/osram_unet/r5_s1_60_20_20_osram_two_encoders \
+  --cfg-options \
+    data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r5_s1_60_20_20_osram_two_encoders \
+&& \
+python tools/train.py osram_unet.py \
+  --work-dir results_seed42/osram_unet/r4_s1_60_20_20_osram_two_encoders \
+  --cfg-options \
+    data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r4_s1_60_20_20_osram_two_encoders
+
+"""
+
 """Five-class UNet/FCN config for the prepared OSRAM dataset."""
 
 _base_ = (
@@ -105,9 +156,9 @@ scheduler_end = 35000   # hier dann etwas über 200 Epochen
 #     test_cfg=dict(mode='slide', crop_size=crop_size, stride=(170, 170)))
 
 # Reproduzierbare Trainingsläufe
-env_cfg = dict(cudnn_benchmark=False)
+env_cfg = dict(cudnn_benchmark=True)
 seed = 42
-randomness = dict(seed=seed, deterministic=True)
+randomness = dict(seed=seed, deterministic=False)
 
 model = dict(
     data_preprocessor=dict(size=crop_size),
