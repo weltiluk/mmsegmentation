@@ -4,6 +4,8 @@ python tools/train.py osram_unet.py
 python tools/test.py osram_unet.py <CHECKPOINT>
 
 
+70_15_15 testen:
+
 python tools/train.py osram_unet.py \
   --work-dir results_seed42/osram_unet/real_dataset_splits_70_15_15 \
   --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_70_15_15 \
@@ -103,8 +105,9 @@ scheduler_end = 35000   # hier dann etwas über 200 Epochen
 #     test_cfg=dict(mode='slide', crop_size=crop_size, stride=(170, 170)))
 
 # Reproduzierbare Trainingsläufe
+env_cfg = dict(cudnn_benchmark=False)
 seed = 42
-randomness = dict(seed=seed)
+randomness = dict(seed=seed, deterministic=True)
 
 model = dict(
     data_preprocessor=dict(size=crop_size),
