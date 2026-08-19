@@ -60,6 +60,19 @@ def main():
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
 
+        # data_root is evaluated while a Python config is loaded. A later
+        # CLI override of the top-level value therefore does not update the
+        # copies already stored in the individual dataloaders. Keep the
+        # convenient --cfg-options data_root=... interface and propagate it
+        # unless a dataloader root was overridden explicitly as well.
+        if "data_root" in args.cfg_options:
+            for dataloader_name in (
+                    "train_dataloader", "val_dataloader", "test_dataloader"):
+                nested_key = f"{dataloader_name}.dataset.data_root"
+                if (dataloader_name in cfg
+                        and nested_key not in args.cfg_options):
+                    cfg[dataloader_name]["dataset"]["data_root"] = cfg.data_root
+
     # work_dir is determined in this priority: CLI > segment in file > filename
     if args.work_dir is not None:
         # update configs according to CLI args if args.work_dir is not None
