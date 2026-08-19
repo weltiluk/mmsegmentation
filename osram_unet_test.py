@@ -13,8 +13,8 @@ _base_ = './osram_unet.py'
 
 # Directory containing the trained model, its saved config and best checkpoint.
 MODEL_DIR = (
-    '/workspaces/masterarbeit/mmsegmentation/results/osram_unet/'
-    'r2_s1_80_10_10_osram_more_rares_transform_image_order1_custom_dist')
+    # '/workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/r4_s1_60_20_20_osram_two_encoders')
+    '/workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/real_dataset_splits_60_20_20')
 
 _model_dir = _Path(MODEL_DIR)
 if not _model_dir.is_dir():
@@ -47,7 +47,7 @@ if len(_best_checkpoints) > 1:
 
 _model_name = _model_dir.name
 load_from = str(_best_checkpoints[0])
-work_dir = str(_model_dir.parents[2] / 'test_results' / _model_name)
+work_dir = str(_model_dir.parents[2] / 'test_results' / 'seed42' / _model_name)
 
 # Runner.test() uses only this dataset. All remaining settings are inherited.
 test_dataloader = dict(

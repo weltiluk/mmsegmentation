@@ -5,20 +5,20 @@ python tools/test.py osram_unet.py <CHECKPOINT>
 
 
 python tools/train.py osram_unet.py \
-  --work-dir results/osram_unet/r2_s1_80_10_10_osram_more_rares_transform_image_custom_dist \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r2_s1_80_10_10_osram_more_rares_transform_image_custom_dist \
+  --work-dir results_seed42/osram_unet/real_dataset_splits_70_15_15 \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_70_15_15 \
 && \
 python tools/train.py osram_unet.py \
-  --work-dir results/osram_unet/r2_s1_80_10_10_osram_more_rares_transform_image_order1_custom_dist \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r2_s1_80_10_10_osram_more_rares_transform_image_order1_custom_dist \
-  && \
+  --work-dir results_seed42/osram_unet/r6_s1_70_15_15_osram_two_encoders \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r6_s1_70_15_15_osram_two_encoders \
+&& \
 python tools/train.py osram_unet.py \
-  --work-dir results/osram_unet/r3_s1_80_10_10_osram_more_rares_transform_image_custom_dist \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r3_s1_80_10_10_osram_more_rares_transform_image_custom_dist \
-    && \
+  --work-dir results_seed42/osram_unet/r5_s1_70_15_15_osram_two_encoders \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r5_s1_70_15_15_osram_two_encoders \
+&& \
 python tools/train.py osram_unet.py \
-  --work-dir results/osram_unet/r1_s1_80_10_10_osram_more_rares_transform_image_custom_dist \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r1_s1_80_10_10_osram_more_rares_transform_image_custom_dist
+  --work-dir results_seed42/osram_unet/r4_s1_70_15_15_osram_two_encoders \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r4_s1_70_15_15_osram_two_encoders
 
   
 python tools/train.py osram_unet.py \
@@ -30,12 +30,25 @@ tensorboard --logdir .
 
 """
 for data_root in \
-  /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r2_s1_80_10_10_osram_more_rares_transform_image_order1_custom_dist \
-  /workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_80_10_10
+  /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r4_s1_80_10_10_osram_less_matches
 do
   dataset_name=$(basename "$data_root")
 
-  for seed in 0 1 2; do
+  for seed in 2; do
+    python tools/train.py osram_unet.py \
+      --work-dir "./results_patience20/osram_unet/${dataset_name}_seed${seed}" \
+      --cfg-options \
+        data_root="$data_root" \
+        randomness.seed="$seed"
+  done
+done\
+&& \
+for data_root in \
+  /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r6_s1_80_10_10_osram_less_matches_custom_dist2
+do
+  dataset_name=$(basename "$data_root")
+
+  for seed in 0 1 2 3 4; do
     python tools/train.py osram_unet.py \
       --work-dir "./results_patience20/osram_unet/${dataset_name}_seed${seed}" \
       --cfg-options \
@@ -55,13 +68,13 @@ _base_ = (
 custom_imports = dict(imports=['projects.osram'], allow_failed_imports=False)
 
 dataset_type = 'BaseSegDataset'
-data_root = (
-    '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
-    'r2_s1_80_10_10_osram_more_rares_transform_image_order0_custom_dist')
-
 # data_root = (
-#     "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_60_20_20"
-# )
+#     '/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/'
+#     'r2_s1_80_10_10_osram_more_rares_transform_image_order0_custom_dist')
+
+data_root = (
+    "/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_60_20_20"
+)
 
 dataset_name = data_root.rstrip('/').rsplit('/', maxsplit=1)[-1]
 
@@ -90,7 +103,7 @@ scheduler_end = 35000   # hier dann etwas über 200 Epochen
 #     test_cfg=dict(mode='slide', crop_size=crop_size, stride=(170, 170)))
 
 # Reproduzierbare Trainingsläufe
-seed = 0
+seed = 42
 randomness = dict(seed=seed)
 
 model = dict(
@@ -244,4 +257,4 @@ visualizer = dict(
     name='visualizer',
 )
 
-work_dir = f'./results_patience20/osram_unet/{dataset_name}_seed{seed}'
+work_dir = f'./results_seed42/osram_unet/{dataset_name}'

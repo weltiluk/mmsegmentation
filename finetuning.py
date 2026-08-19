@@ -9,10 +9,22 @@ fresh for the fine-tuning phase.
 """
 
 """
-python3 finetuning.py \
+finetuning von 60_20_20 mit 4-6:1 mix:
+
+python finetuning.py \
   --trained-model /workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/real_dataset_splits_60_20_20 \
-  --finetuning-dataset /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r5_s1_60_20_20_osram_two_encoders
-  -- seed 42
+  --finetuning-dataset /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r5_s1_60_20_20_osram_two_encoders \
+  --seed 42 \
+&& \
+python finetuning.py \
+  --trained-model /workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/real_dataset_splits_60_20_20 \
+  --finetuning-dataset /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r6_s1_60_20_20_osram_two_encoders \
+  --seed 42 \
+&& \
+python finetuning.py \
+  --trained-model /workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/real_dataset_splits_60_20_20 \
+  --finetuning-dataset /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r4_s1_60_20_20_osram_two_encoders \
+  --seed 42
 """
 
 
@@ -229,6 +241,9 @@ def main() -> int:
 
     cfg_options = [
         f"data_root={args.finetuning_dataset}",
+        f"train_dataloader.dataset.data_root={args.finetuning_dataset}",
+        f"val_dataloader.dataset.data_root={args.finetuning_dataset}",
+        f"test_dataloader.dataset.data_root={args.finetuning_dataset}",
         f"load_from={checkpoint}",
         "resume=False",
         f"randomness.seed={seed}",
