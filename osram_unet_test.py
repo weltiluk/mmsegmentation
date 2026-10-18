@@ -13,8 +13,9 @@ _base_ = './osram_unet.py'
 
 # Directory containing the trained model, its saved config and best checkpoint.
 MODEL_DIR = (
-    # '/workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/r4_s1_60_20_20_osram_two_encoders')
-    '/workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/real_dataset_splits_60_20_20')
+    # '/workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/r6_s1_60_20_20_osram_two_encoders')
+    # '/workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/real_dataset_splits_60_20_20')
+    '/workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/r6_s1_60_20_20_osram_final20_train60_longer_training_vs2')
 
 _model_dir = _Path(MODEL_DIR)
 if not _model_dir.is_dir():

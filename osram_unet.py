@@ -4,23 +4,45 @@ python tools/train.py osram_unet.py
 python tools/test.py osram_unet.py <CHECKPOINT>
 
 
-70_15_15 testen:
+while [ "$(nvidia-smi --query-compute-apps=used_memory --format=csv,noheader,nounits | awk '{s+=$1} END {print s+0}')" -ge 2000 ]; do sleep 200; done
 
-python tools/train.py osram_unet.py \
-  --work-dir results_seed42/osram_unet/real_dataset_splits_70_15_15 \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_70_15_15 \
+for dataset in \
+  60_20_20_osram_final17 \
+  60_20_20_osram_final17_varstrength2 \
+  60_20_20_osram_final19_varstrength2 \
+  70_15_15_osram_final19_varstrength2
+do
+  for r in 6 5 4 3 2
+  do
+    run_name="r${r}_s1_${dataset}"
+
+    echo "Starte Segmentierung: ${run_name}"
+
+    python tools/train.py osram_unet.py \
+      --work-dir "results_seed42/osram_unet/${run_name}" \
+      --cfg-options \
+        "data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/${run_name}" \
+    || exit $?
+  done
+done
+
+
+
+  
+python finetuning.py \
+  --trained-model /workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/real_dataset_splits_70_15_15 \
+  --finetuning-dataset /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r4_s1_70_15_15_osram_two_encoders \
+  --seed 42 \
 && \
-python tools/train.py osram_unet.py \
-  --work-dir results_seed42/osram_unet/r6_s1_70_15_15_osram_two_encoders \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r6_s1_70_15_15_osram_two_encoders \
+python finetuning.py \
+  --trained-model /workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/real_dataset_splits_70_15_15 \
+  --finetuning-dataset /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r5_s1_70_15_15_osram_two_encoders \
+  --seed 42 \
 && \
-python tools/train.py osram_unet.py \
-  --work-dir results_seed42/osram_unet/r5_s1_70_15_15_osram_two_encoders \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r5_s1_70_15_15_osram_two_encoders \
-&& \
-python tools/train.py osram_unet.py \
-  --work-dir results_seed42/osram_unet/r4_s1_70_15_15_osram_two_encoders \
-  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r4_s1_70_15_15_osram_two_encoders
+python finetuning.py \
+  --trained-model /workspaces/masterarbeit/mmsegmentation/results_seed42/osram_unet/real_dataset_splits_70_15_15 \
+  --finetuning-dataset /workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r6_s1_70_15_15_osram_two_encoders \
+  --seed 42
 
   
 python tools/train.py osram_unet.py \
@@ -62,8 +84,6 @@ done
 
 
 """
-cd /workspaces/masterarbeit/mmsegmentation || exit 1
-
 echo "Warte, bis GPU 0 höchstens 1024 MiB Speicher verwendet ..."
 
 while true; do
@@ -86,28 +106,32 @@ while true; do
             "$(date '+%Y-%m-%d %H:%M:%S')"
     fi
 
-    sleep 60
+    sleep 300
 done
 
 python tools/train.py osram_unet.py \
-  --work-dir results_seed42/osram_unet/real_dataset_splits_60_20_20 \
-  --cfg-options \
-    data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/real_dataset_splits_60_20_20 \
+  --work-dir results_seed42/osram_unet/r5_s1_60_20_20_osram_final20_train60_longer_training_vs2 \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r5_s1_60_20_20_osram_final20_train60_longer_training_vs2 \
 && \
 python tools/train.py osram_unet.py \
-  --work-dir results_seed42/osram_unet/r6_s1_60_20_20_osram_two_encoders \
-  --cfg-options \
-    data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r6_s1_60_20_20_osram_two_encoders \
+  --work-dir results_seed42/osram_unet/r6_s1_60_20_20_osram_final20_train60_longer_training_vs2 \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r6_s1_60_20_20_osram_final20_train60_longer_training_vs2 \
 && \
 python tools/train.py osram_unet.py \
-  --work-dir results_seed42/osram_unet/r5_s1_60_20_20_osram_two_encoders \
-  --cfg-options \
-    data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r5_s1_60_20_20_osram_two_encoders \
+  --work-dir results_seed42/osram_unet/r4_s1_60_20_20_osram_final20_train60_longer_training_vs2 \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r4_s1_60_20_20_osram_final20_train60_longer_training_vs2 \
 && \
 python tools/train.py osram_unet.py \
-  --work-dir results_seed42/osram_unet/r4_s1_60_20_20_osram_two_encoders \
-  --cfg-options \
-    data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r4_s1_60_20_20_osram_two_encoders
+  --work-dir results_seed42/osram_unet/r9_s1_60_20_20_osram_final20_train60_longer_training_vs2 \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r9_s1_60_20_20_osram_final20_train60_longer_training_vs2
+
+
+
+  
+python tools/train.py osram_unet.py \
+  --work-dir results_seed42/osram_unet/r6_s1_60_20_20_osram_final20_train60_right_kl \
+  --cfg-options data_root=/workspaces/masterarbeit/masterarbeit/stratified_split/mixed_datasets/r6_s1_60_20_20_osram_final20_train60_right_kl \
+&& \
 
 """
 
